@@ -1,0 +1,74 @@
+### Save Mart Backend Requests
+@baseUrl = http://localhost:5000/api
+
+### 1. Stores
+GET {{baseUrl}}/stores
+###
+POST {{baseUrl}}/stores
+Content-Type: application/json
+
+{
+  "store_name": "Save Mart Saddar",
+  "location": "Saddar, Karachi"
+}
+
+### 2. Customers
+GET {{baseUrl}}/customers?page=1&limit=10
+###
+POST {{baseUrl}}/customers
+Content-Type: application/json
+
+{
+  "customer_name": "Ali Khan",
+  "email": "ali@example.com",
+  "phone": "03001234567"
+}
+
+### 3. Products
+GET {{baseUrl}}/products
+###
+POST {{baseUrl}}/products
+Content-Type: application/json
+
+{
+  "product_name": "Basmati Rice 5kg",
+  "category": "Groceries",
+  "price": 1250
+}
+
+### 4. Inventory
+GET {{baseUrl}}/inventory
+###
+GET {{baseUrl}}/inventory/status
+###
+POST {{baseUrl}}/inventory
+Content-Type: application/json
+
+{
+  "store_id": 1,
+  "product_id": 1,
+  "quantity": 100
+}
+###
+POST {{baseUrl}}/inventory/refresh-mv
+
+### 5. Sales
+GET {{baseUrl}}/sales?page=1&limit=10
+###
+POST {{baseUrl}}/sales/process
+Content-Type: application/json
+
+{
+  "store_id": 1,
+  "product_id": 1,
+  "quantity": 2,
+  "customer_id": 1
+}
+
+### 6. Analytics
+GET {{baseUrl}}/analytics/dashboard
+###
+GET {{baseUrl}}/analytics/best-selling
+
+### 7. Audit
+GET {{baseUrl}}/audit?page=1&limit=10
