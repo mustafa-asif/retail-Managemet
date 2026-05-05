@@ -6,7 +6,8 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   private pool: oracledb.Pool;
 
   async onModuleInit(): Promise<void> {
-    oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
+    const oracle = oracledb as any;
+    oracle.outFormat = oracle.OUT_FORMAT_OBJECT;
     this.pool = await oracledb.createPool({
       user: process.env.ORACLE_USER,
       password: process.env.ORACLE_PASSWORD,

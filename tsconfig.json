@@ -23,6 +23,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src", "vite-env.d.ts"],
-  "exclude": ["node_modules", "backend"]
+  "include": ["src", "vite-env.d.ts","node_modules"],
+  "exclude": [ "backend"]
 }
