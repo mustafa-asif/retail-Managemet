@@ -7,16 +7,23 @@ import { UpdateProductDto } from './dto/update-product.dto';
 export class ProductsService {
   constructor(private readonly db: DatabaseService) {}
 
-  async create(createProductDto: CreateProductDto) {
-    const sql = `INSERT INTO products (product_name, category, price) VALUES (:product_name, :category, :price) RETURNING product_id INTO :out_id`;
-    const result = await this.db.execute(sql, {
+ async create(createProductDto: CreateProductDto) {
+  await this.db.execute(
+    `INSERT INTO products (product_name, category, price) VALUES (:product_name, :category, :price)`,
+    {
       product_name: createProductDto.product_name,
       category: createProductDto.category || null,
       price: createProductDto.price,
-      out_id: { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT },
-    });
-    return { ...createProductDto, product_id: (result.outBinds as any).out_id[0] };
-  }
+    }
+  );
+
+  const result = await this.db.execute(
+    `SELECT * FROM products WHERE product_name = :name ORDER BY product_id DESC FETCH FIRST 1 ROW ONLY`,
+    { name: createProductDto.product_name }
+  );
+
+  return (result.rows as any[])[0];
+}
 
   async findAll(category?: string) {
     let sql = `SELECT * FROM products`;

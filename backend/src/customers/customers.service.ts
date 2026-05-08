@@ -9,15 +9,14 @@ export class CustomersService {
   constructor(private readonly db: DatabaseService) { }
 
   async create(createCustomerDto: CreateCustomerDto) {
-    const sql = `INSERT INTO customers (customer_name, email, phone, city) VALUES (:customer_name, :email, :phone, :city) RETURNING customer_id INTO :out_id`;
+    const sql = `INSERT INTO customers (customer_name, email, phone, city) VALUES (:customer_name, :email, :phone, :city)`;
     const result = await this.db.execute(sql, {
       customer_name: createCustomerDto.customer_name,
       email: createCustomerDto.email || null,
       phone: createCustomerDto.phone || null,
       city: createCustomerDto.city || null,
-      out_id: { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT },
     });
-    return { ...createCustomerDto, customer_id: (result.outBinds as any).out_id[0] };
+    return { ...createCustomerDto, customer_id: result.lastRowid };
   }
 
   async findAll(pagination: PaginationDto) {
