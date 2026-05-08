@@ -8,16 +8,13 @@ export class StoresService {
   constructor(private readonly db: DatabaseService) {}
 
   async create(createStoreDto: CreateStoreDto) {
-    const sql = `INSERT INTO stores (store_name, location) VALUES (:store_name, :location) RETURNING store_id, store_name, location INTO :out_id, :out_name, :out_loc`;
+    const sql = `INSERT INTO stores (store_name, location) VALUES (:store_name, :location)`;
     const result = await this.db.execute(sql, {
       store_name: createStoreDto.store_name,
       location: createStoreDto.location,
-      out_id: { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT },
-      out_name: { type: require('oracledb').STRING, dir: require('oracledb').BIND_OUT },
-      out_loc: { type: require('oracledb').STRING, dir: require('oracledb').BIND_OUT },
+
     });
-    const out = result.outBinds as any;
-    return { store_id: out.out_id[0], store_name: out.out_name[0], location: out.out_loc[0] };
+    return { store_id: result.lastRowid, store_name: createStoreDto.store_name, location: createStoreDto.location };
   }
 
   async findAll() {
