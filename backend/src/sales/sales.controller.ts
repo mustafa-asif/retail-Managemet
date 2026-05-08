@@ -5,7 +5,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('sales')
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(private readonly salesService: SalesService) { }
 
   @Post('process')
   processSale(@Body() processSaleDto: ProcessSaleDto) {
@@ -29,6 +29,28 @@ export class SalesController {
     @Query('to') toDate?: string,
   ) {
     return this.salesService.findAll(pagination, fromDate, toDate);
+  }
+
+  // IMPORTANT: place these BEFORE any @Get(':id') route
+
+  @Get('fragment/gulshan')
+  getSalesGulshan() {
+    return this.salesService.getSalesGulshan();
+  }
+
+  @Get('fragment/defense')
+  getSalesDefense() {
+    return this.salesService.getSalesDefense();
+  }
+
+  @Get('fragment/awami')
+  getSalesAwami() {
+    return this.salesService.getSalesAwami();
+  }
+
+  @Get(':id/details')
+  getSaleDetails(@Param('id') id: string) {
+    return this.salesService.getSaleDetails(+id);
   }
 
   @Get(':id')

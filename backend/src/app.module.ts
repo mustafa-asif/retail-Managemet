@@ -8,6 +8,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { SalesModule } from './sales/sales.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AuditModule } from './audit/audit.module';
+import { FragmentationModule } from './fragmentation/fragmentation.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuditModule } from './audit/audit.module';
     SalesModule,
     AnalyticsModule,
     AuditModule,
+    // FragmentationModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

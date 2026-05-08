@@ -5,7 +5,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class SalesService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly db: DatabaseService) { }
 
   async processSale(dto: ProcessSaleDto) {
     await this.db.execute(
@@ -55,7 +55,7 @@ export class SalesService {
     binds.end_row = end_row;
 
     const result = await this.db.execute(sql, binds);
-    
+
     // For total count query, we only need from_date and to_date
     let countBinds: any = {};
     if (fromDate) countBinds.from_date = fromDate;
@@ -81,6 +81,89 @@ export class SalesService {
 
   async findByCustomer(customerId: number) {
     const result = await this.db.execute(`SELECT * FROM sales WHERE customer_id = :customerId ORDER BY sale_date DESC`, [customerId]);
+    return result.rows;
+  }
+
+  async getSaleDetails(saleId: number) {
+    // Verify sale exists
+    const saleResult = await this.db.execute(`SELECT * FROM sales WHERE sale_id = :id`, [saleId]);
+    if (!saleResult.rows || saleResult.rows.length === 0) {
+      throw new NotFoundException('Sale not found');
+    }
+
+    const detailsResult = await this.db.execute(
+      `SELECT sd.detail_id, sd.sale_id, sd.product_id, sd.quantity, sd.unit_price,
+              p.product_name, p.category,
+              (sd.quantity * sd.unit_price) AS line_total
+       FROM sales_details sd
+       JOIN products p ON sd.product_id = p.product_id
+       WHERE sd.sale_id = :id
+       ORDER BY sd.detail_id`,
+      [saleId],
+    );
+
+    return {
+      sale: saleResult.rows[0],
+      details: detailsResult.rows,
+    };
+  }
+
+  // ─── Horizontal Fragments: Sales ───────────────────────────
+
+  async getSalesGulshan() {
+    const result = await this.db.execute(`
+    SELECT
+      s.sale_id,
+      s.store_id,
+      st.store_name,
+      s.customer_id,
+      NVL(c.customer_name, 'Walk-in')                    AS customer_name,
+      TO_CHAR(s.sale_date, 'YYYY-MM-DD HH24:MI:SS')      AS sale_date,
+      s.total_amt
+    FROM sales s
+    JOIN stores   st ON s.store_id   = st.store_id
+    LEFT JOIN customers c  ON s.customer_id = c.customer_id
+    WHERE s.store_id = 1
+    ORDER BY s.sale_date DESC
+  `);
+    return result.rows;
+  }
+
+  async getSalesDefense() {
+    const result = await this.db.execute(`
+    SELECT
+      s.sale_id,
+      s.store_id,
+      st.store_name,
+      s.customer_id,
+      NVL(c.customer_name, 'Walk-in')                    AS customer_name,
+      TO_CHAR(s.sale_date, 'YYYY-MM-DD HH24:MI:SS')      AS sale_date,
+      s.total_amt
+    FROM sales s
+    JOIN stores   st ON s.store_id   = st.store_id
+    LEFT JOIN customers c  ON s.customer_id = c.customer_id
+    WHERE s.store_id = 2
+    ORDER BY s.sale_date DESC
+  `);
+    return result.rows;
+  }
+
+  async getSalesAwami() {
+    const result = await this.db.execute(`
+    SELECT
+      s.sale_id,
+      s.store_id,
+      st.store_name,
+      s.customer_id,
+      NVL(c.customer_name, 'Walk-in')                    AS customer_name,
+      TO_CHAR(s.sale_date, 'YYYY-MM-DD HH24:MI:SS')      AS sale_date,
+      s.total_amt
+    FROM sales s
+    JOIN stores   st ON s.store_id   = st.store_id
+    LEFT JOIN customers c  ON s.customer_id = c.customer_id
+    WHERE s.store_id = 3
+    ORDER BY s.sale_date DESC
+  `);
     return result.rows;
   }
 }
