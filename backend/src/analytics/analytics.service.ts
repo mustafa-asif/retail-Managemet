@@ -3,7 +3,7 @@ import { DatabaseService } from '../database/database.service';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly db: DatabaseService) { }
 
   async getDashboard() {
     const revResult = await this.db.execute(`SELECT COALESCE(SUM(total_amt), 0) as total_revenue, COUNT(*) as total_transactions FROM sales`);
@@ -58,5 +58,41 @@ export class AnalyticsService {
   async getUnsoldProducts() {
     const result = await this.db.execute(`SELECT * FROM vw_minus_unsold_products`);
     return result.rows;
+  }
+
+  async getStorePerformance(storeId: number) {
+    // 1. Sales summary for the store
+    const summaryResult = await this.db.execute(
+      `SELECT * FROM vw_store_sales_summary WHERE store_id = :storeId`,
+      { storeId },
+    );
+
+    // 2. Top 5 products sold in this store
+    const topProductsResult = await this.db.execute(
+      `SELECT * FROM (
+        SELECT p.product_id, p.product_name, p.category,
+               SUM(sd.quantity) AS total_qty_sold,
+               SUM(sd.quantity * sd.unit_price) AS total_revenue
+        FROM sales s
+        JOIN sales_details sd ON s.sale_id = sd.sale_id
+        JOIN products p ON sd.product_id = p.product_id
+        WHERE s.store_id = :storeId
+        GROUP BY p.product_id, p.product_name, p.category
+        ORDER BY total_qty_sold DESC
+      ) WHERE ROWNUM <= 5`,
+      { storeId },
+    );
+
+    // 3. Current inventory status
+    const inventoryResult = await this.db.execute(
+      `SELECT * FROM mv_inventory_status WHERE store_id = :storeId`,
+      { storeId },
+    );
+
+    return {
+      summary: summaryResult.rows && summaryResult.rows.length > 0 ? summaryResult.rows[0] : null,
+      top_products: topProductsResult.rows,
+      inventory: inventoryResult.rows,
+    };
   }
 }

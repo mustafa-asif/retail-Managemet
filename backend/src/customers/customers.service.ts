@@ -6,7 +6,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly db: DatabaseService) { }
 
   async create(createCustomerDto: CreateCustomerDto) {
     const sql = `INSERT INTO customers (customer_name, email, phone, city) VALUES (:customer_name, :email, :phone, :city) RETURNING customer_id INTO :out_id`;
@@ -63,5 +63,56 @@ export class CustomersService {
     await this.findOne(id);
     await this.db.execute(`DELETE FROM customers WHERE customer_id = :id`, [id]);
     return { message: 'Customer deleted successfully' };
+  }
+
+  async getPurchaseHistory(customerId: number) {
+    // Verify customer exists
+    await this.findOne(customerId);
+
+    // 1. All sales for this customer
+    const salesResult = await this.db.execute(
+      `SELECT s.sale_id, s.store_id, s.sale_date, s.total_amt,
+              st.store_name
+       FROM sales s
+       LEFT JOIN stores st ON s.store_id = st.store_id
+       WHERE s.customer_id = :customerId
+       ORDER BY s.sale_date DESC`,
+      { customerId },
+    );
+
+    // 2. Total spent
+    const totalResult = await this.db.execute(
+      `SELECT COALESCE(SUM(total_amt), 0) AS total_spent,
+              COUNT(*) AS total_orders
+       FROM sales
+       WHERE customer_id = :customerId`,
+      { customerId },
+    );
+
+    // 3. Favourite product (most purchased by quantity)
+    const favResult = await this.db.execute(
+      `SELECT * FROM (
+        SELECT p.product_id, p.product_name, SUM(sd.quantity) AS total_qty
+        FROM sales s
+        JOIN sales_details sd ON s.sale_id = sd.sale_id
+        JOIN products p ON sd.product_id = p.product_id
+        WHERE s.customer_id = :customerId
+        GROUP BY p.product_id, p.product_name
+        ORDER BY total_qty DESC
+      ) WHERE ROWNUM = 1`,
+      { customerId },
+    );
+
+    const totals: any = totalResult.rows ? totalResult.rows[0] : { TOTAL_SPENT: 0, TOTAL_ORDERS: 0 };
+    const favourite: any = favResult.rows && favResult.rows.length > 0
+      ? favResult.rows[0]
+      : null;
+
+    return {
+      total_spent: Number(totals.TOTAL_SPENT) || 0,
+      total_orders: Number(totals.TOTAL_ORDERS) || 0,
+      favourite_product: favourite,
+      orders: salesResult.rows,
+    };
   }
 }

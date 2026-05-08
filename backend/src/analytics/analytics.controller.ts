@@ -1,9 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 
 @Controller('analytics')
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
 
   @Get('dashboard')
   getDashboard() {
@@ -38,5 +38,10 @@ export class AnalyticsController {
   @Get('unsold-products')
   getUnsoldProducts() {
     return this.analyticsService.getUnsoldProducts();
+  }
+
+  @Get('store-performance/:storeId')
+  getStorePerformance(@Param('storeId') storeId: string) {
+    return this.analyticsService.getStorePerformance(+storeId);
   }
 }

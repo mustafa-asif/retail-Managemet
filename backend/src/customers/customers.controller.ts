@@ -6,7 +6,7 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('customers')
 export class CustomersController {
-  constructor(private readonly customersService: CustomersService) {}
+  constructor(private readonly customersService: CustomersService) { }
 
   @Post()
   create(@Body() createCustomerDto: CreateCustomerDto) {
@@ -16,6 +16,11 @@ export class CustomersController {
   @Get()
   findAll(@Query() pagination: PaginationDto) {
     return this.customersService.findAll(pagination);
+  }
+
+  @Get(':id/history')
+  getPurchaseHistory(@Param('id') id: string) {
+    return this.customersService.getPurchaseHistory(+id);
   }
 
   @Get(':id')
