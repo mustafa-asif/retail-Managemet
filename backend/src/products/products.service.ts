@@ -1,29 +1,31 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import * as oracledb from "oracledb";
+
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly db: DatabaseService) {}
 
- async create(createProductDto: CreateProductDto) {
-  await this.db.execute(
-    `INSERT INTO products (product_name, category, price) VALUES (:product_name, :category, :price)`,
-    {
-      product_name: createProductDto.product_name,
-      category: createProductDto.category || null,
-      price: createProductDto.price,
-    }
-  );
+  async create(createProductDto: CreateProductDto) {
+    await this.db.execute(
+      `INSERT INTO products (product_name, category, price) VALUES (:product_name, :category, :price)`,
+      {
+        product_name: createProductDto.product_name,
+        category: createProductDto.category || null,
+        price: createProductDto.price,
+      },
+    );
 
-  const result = await this.db.execute(
-    `SELECT * FROM products WHERE product_name = :name ORDER BY product_id DESC FETCH FIRST 1 ROW ONLY`,
-    { name: createProductDto.product_name }
-  );
+    const result = await this.db.execute(
+      `SELECT * FROM products WHERE product_name = :name ORDER BY product_id DESC FETCH FIRST 1 ROW ONLY`,
+      { name: createProductDto.product_name },
+    );
 
-  return (result.rows as any[])[0];
-}
+    return (result.rows as any[])[0];
+  }
 
   async findAll(category?: string) {
     let sql = `SELECT * FROM products`;
@@ -38,13 +40,20 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
-    const result = await this.db.execute(`SELECT * FROM products WHERE product_id = :id`, [id]);
-    if (!result.rows || result.rows.length === 0) throw new NotFoundException('Product not found');
+    const result = await this.db.execute(
+      `SELECT * FROM products WHERE product_id = :id`,
+      [id],
+    );
+    if (!result.rows || result.rows.length === 0)
+      throw new NotFoundException("Product not found");
     return result.rows[0];
   }
 
   async findByCategory(category: string) {
-    const result = await this.db.execute(`SELECT * FROM products WHERE category = :cat ORDER BY product_id ASC`, { cat: category });
+    const result = await this.db.execute(
+      `SELECT * FROM products WHERE category = :cat ORDER BY product_id ASC`,
+      { cat: category },
+    );
     return result.rows;
   }
 
@@ -53,18 +62,54 @@ export class ProductsService {
     await this.db.execute(
       `UPDATE products SET product_name = :n, category = :c, price = :p WHERE product_id = :id`,
       {
-        n: updateProductDto.product_name !== undefined ? updateProductDto.product_name : product.PRODUCT_NAME,
-        c: updateProductDto.category !== undefined ? updateProductDto.category : product.CATEGORY,
-        p: updateProductDto.price !== undefined ? updateProductDto.price : product.PRICE,
+        n:
+          updateProductDto.product_name !== undefined
+            ? updateProductDto.product_name
+            : product.PRODUCT_NAME,
+        c:
+          updateProductDto.category !== undefined
+            ? updateProductDto.category
+            : product.CATEGORY,
+        p:
+          updateProductDto.price !== undefined
+            ? updateProductDto.price
+            : product.PRICE,
         id,
-      }
+      },
     );
     return this.findOne(id);
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-    await this.db.execute(`DELETE FROM products WHERE product_id = :id`, [id]);
-    return { message: 'Product deleted successfully' };
+    const pool = oracledb.getPool();
+    const conn = await pool.getConnection();
+
+    try {
+      // 1. Delete from sales_detail first (FK reference)
+      await conn.execute(`DELETE FROM sales_details WHERE product_id = :id`, [
+        id,
+      ]);
+
+      // 2. Delete from inventory
+      await conn.execute(`DELETE FROM inventory WHERE product_id = :id`, [id]);
+
+      // 3. Now safe to delete product
+      const result = await conn.execute(
+        `DELETE FROM products WHERE product_id = :id`,
+        [id],
+      );
+
+      if ((result as any).rowsAffected === 0) {
+        throw new NotFoundException(`Product ${id} not found`);
+      }
+
+      await conn.commit();
+      return { message: `Product ${id} deleted successfully` };
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      await conn.close();
+    }
   }
 }
