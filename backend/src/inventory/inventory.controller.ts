@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param ,Delete} from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
@@ -38,6 +38,8 @@ export class InventoryController {
     return this.inventoryService.findAll();
   }
 
+  
+
   // ── Fragmentation routes ──────────────────────────
   // IMPORTANT: these must go BEFORE @Get(':id') if you have one
   // to avoid NestJS matching 'gulshan' as an id param
@@ -65,5 +67,10 @@ export class InventoryController {
   @Put(':id')
   update(@Param('id') id: string, @Body() updateInventoryDto: UpdateInventoryDto) {
     return this.inventoryService.update(+id, updateInventoryDto);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string) {
+    return this.inventoryService.delete(+id);
   }
 }
